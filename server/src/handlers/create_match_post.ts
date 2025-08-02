@@ -1,12 +1,24 @@
 
+import { db } from '../db';
+import { matchPostsTable, usersTable } from '../db/schema';
 import { type CreateMatchPostInput, type MatchPost } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function createMatchPost(input: CreateMatchPostInput): Promise<MatchPost> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to create a new match post and persist it in the database.
-    // TODO: Validate user_id exists, insert match post with current timestamp
-    return Promise.resolve({
-        id: 1, // Placeholder ID
+export const createMatchPost = async (input: CreateMatchPostInput): Promise<MatchPost> => {
+  try {
+    // Validate that the user exists
+    const existingUser = await db.select()
+      .from(usersTable)
+      .where(eq(usersTable.id, input.user_id))
+      .execute();
+
+    if (existingUser.length === 0) {
+      throw new Error(`User with id ${input.user_id} does not exist`);
+    }
+
+    // Insert match post record
+    const result = await db.insert(matchPostsTable)
+      .values({
         user_id: input.user_id,
         team_name: input.team_name,
         skill_level: input.skill_level,
@@ -14,9 +26,14 @@ export async function createMatchPost(input: CreateMatchPostInput): Promise<Matc
         location: input.location,
         field_name: input.field_name,
         contact_info: input.contact_info,
-        description: input.description,
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date()
-    } as MatchPost);
-}
+        description: input.description
+      })
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Match post creation failed:', error);
+    throw error;
+  }
+};

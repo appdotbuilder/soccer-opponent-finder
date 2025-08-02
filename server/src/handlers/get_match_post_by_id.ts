@@ -1,9 +1,28 @@
 
+import { db } from '../db';
+import { matchPostsTable } from '../db/schema';
 import { type MatchPost } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function getMatchPostById(id: number): Promise<MatchPost | null> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to fetch a specific match post by ID from the database.
-    // TODO: Query database for match post with given ID, return null if not found
-    return Promise.resolve(null);
-}
+export const getMatchPostById = async (id: number): Promise<MatchPost | null> => {
+  try {
+    const results = await db.select()
+      .from(matchPostsTable)
+      .where(eq(matchPostsTable.id, id))
+      .execute();
+
+    if (results.length === 0) {
+      return null;
+    }
+
+    const matchPost = results[0];
+    return {
+      ...matchPost,
+      // All fields are already in correct types from database schema
+      // No numeric conversions needed as there are no numeric columns
+    };
+  } catch (error) {
+    console.error('Get match post by ID failed:', error);
+    throw error;
+  }
+};
